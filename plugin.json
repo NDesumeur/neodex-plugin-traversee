@@ -1,0 +1,22 @@
+{
+  "id": "neodex.traversee",
+  "name": "Traversée",
+  "version": "1.0.0",
+  "author": "NDesumeur",
+  "description": "Un poussin traverse routes et rivières, aussi loin que possible. Attention aux voitures, et ne tombe pas à l'eau !",
+  "icon": "icon.png",
+  "entry": "index.js",
+  "view": "traversee",
+  "neobase": ">=4.0.0",
+  "type": "app",
+  "category": "Jeux",
+  "syncMode": "progression",
+  "syncInfo": "Record de rangées.",
+  "mobile": false,
+  "system": false,
+  "dependencies": {},
+  "sdk": "2.1.0",
+  "permissions": [
+    "storage"
+  ]
+}
