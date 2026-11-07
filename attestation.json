@@ -1,0 +1,9 @@
+{
+  "pluginId": "neodex.traversee",
+  "repo": "NDesumeur/neodex-plugin-traversee",
+  "version": "1.0.0",
+  "sha256": "0c1ad99ff1d7c3dd6294df792969bdad26bd24ffa8652f3c9683aeaeef1bdd75",
+  "approvedAt": "2026-11-07T17:30:59.715Z",
+  "neobase": ">=4.0.0",
+  "signature": "oBYZfj9PWgslycCCnsaFB5y7Lc6E4W12s0jjuWC/cJ6fvE2vMpSTpsBgFLPb+iPxiYFcf6JQR0p9PNLislU4AQ=="
+}
