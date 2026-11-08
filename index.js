@@ -1,5 +1,5 @@
 // Traversée : Un poussin traverse routes et rivières, aussi loin que possible. Attention aux voitures, et ne tombe pas à l'eau !
-// Jeu NeoDex en pixel art dessiné à la main (police bitmap, cadres et boutons en pixels). Il tourne dans le bac à sable de NeoDex.
+// Jeu NeoDex : police, cadres et boutons propres au jeu. Il tourne dans le bac à sable de NeoDex.
 const HTML = `<div class="appWrap wide">
   <div class="agHead"><span class="label">Traversée</span><span class="hint">Flèches ou ZQSD : sauter · clic : sauter vers ce côté</span></div>
   <div class="gMain"><div class="gameBox"><canvas id="gc" width="208" height="240"></canvas></div>
