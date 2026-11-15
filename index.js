@@ -5,19 +5,23 @@ const HTML = `<div class="appWrap wide">
   <div class="gMain"><div class="gameBox"><canvas id="gc" width="208" height="240"></canvas></div>
     <div class="gSide">
       <div class="sysCard"><b>RECORDS</b><div class="gStats" id="gStats"></div></div>
-      <div class="row"><button class="btn main" id="gNew">NOUVELLE PARTIE</button></div>
+      <div class="sysCard"><b>PERSONNAGE</b><canvas id="tvPick" width="128" height="32" aria-label="Choix du personnage"></canvas><div class="hint" id="tvPickInfo" data-pxskip></div></div>
+      <div class="row"><button class="btn main" id="gNew">NOUVELLE PARTIE</button><button class="btn" id="tvFs">PLEIN ÉCRAN</button></div>
       
-      <div class="hint">Sur la rivière, saute de tronc en tronc : ils t'emportent avec eux.</div><div class="hint">L'écran avance tout seul : celui qui traîne se fait rattraper.</div>
+      <div class="hint">Sur la rivière, saute de tronc en tronc : ils t'emportent avec eux.</div><div class="hint">L'écran avance tout seul : celui qui traîne se fait rattraper.</div><div class="hint">Plus loin : des trains (le feu rouge clignote avant leur passage), de la glace qui fait glisser, et de la lave où l'on saute de pierre en pierre.</div>
     </div></div>
 </div>`;
 const CSS = `.gMain{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
-.gameBox{display:grid;place-items:center;padding:10px;background:#05010b;flex:2;min-width:320px;position:relative}
-.gameBox canvas{width:100%;image-rendering:pixelated;cursor:var(--cp,pointer);touch-action:none}
+.gameBox{display:grid;place-items:center;padding:10px;background:#05010b;flex:2 1 480px;min-width:min(100%,320px);position:relative}
+.gameBox:fullscreen{padding:0}
+.gameBox:fullscreen canvas{width:min(100vw,calc(100vh * 208 / 240));max-width:none}
+.gameBox canvas{image-rendering:pixelated;cursor:var(--cp,pointer);touch-action:none}
 .gSide{display:flex;flex-direction:column;gap:14px;flex:1;min-width:250px;max-width:420px}
 .gSide .sysCard{display:flex;flex-direction:column}
 .gStats{display:grid;grid-template-columns:1fr auto;gap:4px 14px}
 .gStats b{text-align:right}
-.gameBox canvas{max-width:480px;aspect-ratio:208/240}`;
+#tvPick{width:100%;max-width:384px;aspect-ratio:128/32;image-rendering:pixelated;cursor:pointer;margin-top:6px}
+.gameBox canvas{width:min(100%,max(280px,calc((100vh - 170px) * 208 / 240)));height:auto;aspect-ratio:208/240}`;
 /* ---------- l'habillage pixel art, dessiné à la main : police bitmap (accents compris), cadres, boutons, icônes ----------
    Tout est en pixels pleins, agrandis par 2 sans lissage : aucun dégradé, aucune ombre floue. */
 const PXK = (() => {
@@ -289,7 +293,7 @@ export default async function (ctx) {
   view.innerHTML = HTML;
   pxSkin(view.querySelector('.appWrap'), { title: "TRAVERSÉE", T: {"k": "#050c06", "k2": "#0c1a0e", "fill": "#142a18", "fillOn": "#1c3a22", "hl": "#24482a", "line": "#3a6a40", "acc": "#ffd84a", "accL": "#fff4b0", "accS": "#c49a1a", "accD": "#4a3a06", "rivet": "#fff4b0", "btn": "#24482a", "btnHi": "#5a9a5a", "btnLo": "#0c1a0e", "btnHov": "#2a5430", "btnHovHi": "#7aba7a", "text": "#f0fff0", "muted": "#b0d0a8", "acc2": "#3fa0ff", "gold": "#ffd84a", "orange": "#ffa030", "red": "#ff4a5a", "green": "#7ee07a", "green2": "#2f8a3a", "bg": "#060e08", "bgDot": "#142a18", "bgDot2": "#0c1a0e", "spark": "#3a6a40", "spark2": "#3fa0ff", "tile": ["................", "...:............", "................", "..........+.....", "................", "................", ".....:..........", "................", "................", ".............:..", "................", "..+.............", "................", ".........:......", "................", "................"]},
   emblem: ["....kkkk....", "...kwwwwk...", "..kwwwwwwk..", "..kwwkwwwk..", "..kwwwwwwkk.", "..kgwwwwwook", ".kggggwwwkk.", "kggggggggk..", "kggggggggk..", ".kggggggk...", "..kkokkok...", "...kok.ok..."],
-  icons: [[/^NOUVELLE/, "play"], [/^RECORDS/, "crown"]] });
+  icons: [[/^NOUVELLE/, "play"], [/^RECORDS/, "crown"], [/^PLEIN/, "full"]] });
   const $ = id => view.querySelector('#' + id) || document.getElementById(id);
   const doc = async n => { try { return await folder.read(n); } catch { return null; } };
   const games = { best: {}, ...(await doc('games')) };
@@ -338,6 +342,28 @@ const TV_CARS = [['#ff4a5a', '#ffb0b8', '#a02030'], ['#3f8aff', '#b0d0ff', '#1a4
   px(b, '#2a3a5a', 9, 4, 5, 8); px(b, '#2a3a5a', 20, 4, 4, 8); px(b, '#8ab0e0', 10, 5, 1, 3); px(b, '#8ab0e0', 21, 5, 1, 3); px(b, '#fff4a0', 29, 3, 2, 2); px(b, '#fff4a0', 29, 11, 2, 2);
   px(b, '#05010b', 5, 0, 5, 2); px(b, '#05010b', 22, 0, 5, 2); px(b, '#05010b', 5, 14, 5, 2); px(b, '#05010b', 22, 14, 5, 2);
 }));
+// les personnages : deux images chacun (posé, en saut), débloqués par ton record
+const TV_CHARS = [
+  {name: 'Poussin', need: 0, img: TV_CHICK},
+  {name: 'Canard', need: 25, img: [
+    ['.....kkkk...', '....kGGGGk..', '....kGGkGk..', '....kGGGGkkk', '....kGGGGook', '.....kwwwkk.', 'k...kbbbbk..', 'kbkkbbbbbbk.', 'kbbbbbWWWbk.', '.kbbbbbbbbk.', '...kkokkok..', '...kok.kok..'],
+    ['.....kkkk...', '....kGGGGk..', '....kGGkGk..', '....kGGGGkkk', '....kGGGGook', 'k....kwwwkk.', 'kbk.kbbbbk..', 'kbbkbbbbbbk.', 'kbbbbbWWWbk.', '.kbbbbbbbbk.', '..kkkkkkkk..', '............']].map(r => spr(r, {k: '#05010b', G: '#2a9a5a', w: '#ffffff', b: '#c8a882', W: '#f0e8dc', o: '#ff9a3d'}))},
+  {name: 'Lapin', need: 50, img: [
+    ['......kk.kk.', '.....kwkkwk.', '.....kwkkwk.', '.....kwwwwk.', '....kwwwkwwk', '....kwwwwwpk', '.kk.kwwwwwk.', 'kwwkwwwwwk..', 'kwwwwwwwwwk.', '.kwwwwwwwwk.', '..kkwkkkwk..', '...kk...kk..'],
+    ['......kk.kk.', '.....kwkkwk.', '.....kwkkwk.', '.....kwwwwk.', '....kwwwkwwk', '.kk.kwwwwwpk', 'kwwkkwwwwwk.', 'kwwwwwwwwk..', '.kwwwwwwwwk.', '..kwwwwwwwk.', '...kkkkkkk..', '............']].map(r => spr(r, {k: '#05010b', w: '#e8e4f0', p: '#ff8aa0'}))},
+  {name: 'Robot', need: 100, img: [
+    ['......k.....', '.....krk....', '..kkkkkkkk..', '..kmmmmmmk..', '..kmmbmbmk..', '..kmmmmmmk..', '...kkkkkk...', '..kMMMMMMk..', '.kkMyMMyMkk.', '..kMMMMMMk..', '...kMk.kMk..', '...kkk.kkk..'],
+    ['......k.....', '.....krk....', '..kkkkkkkk..', '..kmmmmmmk..', '..kmmbmbmk..', '..kmmmmmmk..', '...kkkkkk...', '.kkMMMMMMkk.', '..kMyMMyMk..', '..kMMMMMMk..', '...kkkkkk...', '............']].map(r => spr(r, {k: '#05010b', r: '#ff4a5a', m: '#b8c0d8', b: '#5ae0ff', M: '#8a92aa', y: '#ffd84a'}))},
+];
+const tvChar = () => TV_CHARS[tvs.char] && (games.best.traversee || 0) >= TV_CHARS[tvs.char].need ? TV_CHARS[tvs.char] : TV_CHARS[0];
+// le train : une locomotive et deux wagons (128 px), une pierre sur la lave
+const TV_TRAIN = cnv(128, 16, b => {
+  for (let w = 0; w < 2; w++) { const x = w * 42; px(b, '#05010b', x + 1, 1, 40, 14); px(b, '#3a6ac0', x + 2, 2, 38, 12); px(b, '#6a9ae0', x + 2, 2, 38, 1); px(b, '#1a3a7a', x + 2, 12, 38, 2); for (let k = 0; k < 4; k++) px(b, '#c8e0ff', x + 5 + k * 9, 5, 6, 5); }
+  px(b, '#05010b', 85, 1, 42, 14); px(b, '#d83a3a', 86, 2, 40, 12); px(b, '#ff7a6a', 86, 2, 40, 1); px(b, '#8a1a1a', 86, 12, 40, 2); px(b, '#2a2a3a', 88, 4, 12, 8); px(b, '#c8e0ff', 89, 5, 10, 5);
+  px(b, '#ffd84a', 104, 6, 14, 4); px(b, '#fff4a0', 124, 3, 2, 3); px(b, '#fff4a0', 124, 10, 2, 3);
+});
+const tvStone = n => cnv(n * 16, 16, b => { const w = n * 16; px(b, '#05010b', 1, 2, w - 2, 12); px(b, '#05010b', 2, 1, w - 4, 14); px(b, '#5a5060', 2, 2, w - 4, 12); px(b, '#7a7080', 3, 3, w - 6, 3); px(b, '#3a3242', 2, 11, w - 4, 3); for (let x = 5; x < w - 4; x += 6) px(b, '#4a4250', x, 7 + (x % 4 ? 1 : 0), 2, 2); });
+const TV_STONES = [null, tvStone(1), tvStone(2)];
 const TV_TRUCK = cnv(48, 16, b => { px(b, '#05010b', 1, 1, 46, 14); px(b, '#e8e0d0', 2, 2, 32, 12); px(b, '#c8c0b0', 2, 12, 32, 2); for (let x = 6; x < 34; x += 6) px(b, '#b0a898', x, 3, 1, 9); px(b, '#ffa030', 36, 2, 10, 12); px(b, '#c06a10', 36, 12, 10, 2); px(b, '#2a3a5a', 39, 4, 4, 8); px(b, '#fff4a0', 45, 3, 2, 2); px(b, '#fff4a0', 45, 11, 2, 2); });
 const tvLog = n => cnv(n * 16, 16, b => {  // un tronc : écorce, nœuds, bouts coupés avec leurs cernes
   const w = n * 16; px(b, '#05010b', 0, 2, w, 12); px(b, '#8a5a2a', 1, 3, w - 2, 10); px(b, '#a8743a', 1, 4, w - 2, 2); px(b, '#5a3a1a', 1, 11, w - 2, 2);
@@ -346,15 +372,23 @@ const tvLog = n => cnv(n * 16, 16, b => {  // un tronc : écorce, nœuds, bouts 
 });
 const TV_LOGS = [null, null, tvLog(2), tvLog(3), tvLog(4)];
 const TV_TREE = spr(['.....kkkk.......', '...kkNNNNkk.....', '..kNNnnNNNNk....', '.kNnnNNNNnNNk...', '.kNnNNNnNNNNk...', 'kNNNNNNNNnNNNk..', 'kNnNNNNNNNNNNk..', 'kNNNNnNNNNnNNk..', '.kNNNNNNNNNNk...', '.kkNNNNNNNNkk...', '...kkkddkkk.....', '.....kddk.......', '....kkddkk......', '................', '................', '................'], {k: '#05010b', N: '#2a7a3a', n: '#4aa84a', d: '#6a4420'});
-const tvs = gstore('traversee', {games: 0});
+const tvs = gstore('traversee', {games: 0}); tvs.char ??= 0;
 let tv = null;
 function tvRow(i) {  // chaque rangée se décide à sa première vue, à partir d'un dé seedé par la partie
   if (tv.rows[i]) return tv.rows[i];
   const r = seeded(tv.seed + i * 7919), lvl = Math.min(1, i / 160), prev = tv.rows[i - 1]?.type;
   let type = i < 3 ? 'grass' : r() < .32 ? 'grass' : r() < .55 ? 'road' : 'river'; if (i >= 3 && prev === 'grass' && type === 'grass' && r() < .6) type = 'road';
+  // plus loin, de nouveaux terrains : la voie ferrée dès la rangée 15, la glace dès 30, la lave dès 50
+  const r2 = seeded(tv.seed + i * 104729);
+  if (i >= 15 && type === 'road' && r2() < .3) type = 'rail';
+  if (i >= 30 && type === 'grass' && prev !== 'ice' && r2() < .4) type = 'ice';
+  if (i >= 50 && type === 'river' && r2() < .45) type = 'lava';
   const row = {type, dir: r() < .5 ? -1 : 1, items: []};
   if (type === 'grass') { row.trees = new Set(); if (i > 2) for (let c = 0; c < TV.COLS; c++) if (r() < .18 + lvl * .1 && c !== 6) row.trees.add(c); }
   if (type === 'road') { row.speed = (.5 + r() * .7 + lvl * 1.1) * row.dir; const n = 1 + Math.floor(r() * (2 + lvl * 2)), span = TV.COLS * 16 + 64; for (let k = 0; k < n; k++) { const truck = r() < .25; row.items.push({x: k * span / n + r() * 20, len: truck ? 3 : 2, img: truck ? TV_TRUCK : TV_CARS[Math.floor(r() * 4)]}); } }
+  if (type === 'rail') { row.speed = 7 * row.dir; row.span = W + 128 + 900 + Math.floor(r() * 400); row.off = 128; row.items.push({x: r() * row.span - 128, len: 8, img: TV_TRAIN}); }
+  if (type === 'ice') row.speed = (.3 + r() * .3 + lvl * .3) * row.dir;  // la glace fait glisser, comme un tronc sans fin
+  if (type === 'lava') { row.speed = (.25 + r() * .35 + lvl * .3) * row.dir; const n = 4, span = TV.COLS * 16 + 64; for (let k = 0; k < n; k++) row.items.push({x: k * span / n + r() * 8, len: 1 + (r() < .5 - lvl * .3 ? 1 : 0)}); }
   if (type === 'river') { row.speed = (.35 + r() * .5 + lvl * .6) * row.dir; const n = 3 - Math.floor(lvl * 1.4 + r() * .6), span = TV.COLS * 16 + 64; for (let k = 0; k < Math.max(2, n); k++) { const len = 2 + Math.floor(r() * (3 - lvl)); row.items.push({x: k * span / Math.max(2, n) + r() * 10, len}); } }
   return tv.rows[i] = row;
 }
@@ -367,17 +401,23 @@ function tvHop(dc, dr) {
   if (tv.mode === 'ready') tv.mode = 'play'; if (tv.mode !== 'play' || tv.tick - tv.hopAt < TV.HOP) return;
   const nr = tv.row + dr, nx = tv.x + dc * 16; if (nr < Math.floor(tv.cam) - 1 || nx < 0 || nx > (TV.COLS - 1) * 16) return;
   const R = tvRow(nr), col = Math.round(nx / 16); if (R.type === 'grass' && R.trees.has(col)) return;
-  tv.from = [tv.x, tv.row]; tv.row = nr; tv.x = R.type === 'river' ? nx : col * 16; tv.hopAt = tv.tick; tv.face = dc;
-  if (tv.row > tv.maxRow) { tv.maxRow = tv.row; for (let i = tv.row; i < tv.row + 16; i++) tvRow(i); }
+  tv.from = [tv.x, tv.row]; tv.row = nr; tv.x = /river|ice|lava/.test(R.type) ? nx : col * 16; tv.hopAt = tv.tick; tv.face = dc;
+  if (tv.row > tv.maxRow) { tv.maxRow = tv.row; for (let i = tv.row; i < tv.row + 16; i++) tvRow(i);
+    const ch = TV_CHARS.find(c => c.need && c.need === tv.maxRow && (games.best.traversee || 0) < c.need); if (ch) { tv.unlock = {name: ch.name, t: 150}; beep(880, .3, 'square', 1760, .06); } }
   beep(620 + dr * 80, .03, 'square', 900, .04);
 }
-function tvDie(why) { tv.mode = 'over'; tv.why = why; tv.deadAt = tv.tick; tvs.games++; best('traversee', tv.maxRow); saveGames(); tvInfo(); beep(why === 'Plouf !' ? 180 : 120, .4, why === 'Plouf !' ? 'sine' : 'sawtooth', 60, .1); }
+function tvDie(why) { tv.mode = 'over'; tv.why = why; tv.deadAt = tv.tick; tvs.games++; best('traversee', tv.maxRow); saveGames(); tvInfo(); tvPick(); beep(why === 'Plouf !' || why === 'Brûlé !' ? 180 : 120, .4, why === 'Plouf !' ? 'sine' : 'sawtooth', 60, .1); }
 function tvUpdate() {
   const span = TV.COLS * 16 + 64;
-  for (let i = Math.floor(tv.cam) - 2; i < tv.cam + 18; i++) { const R = tv.rows[i]; if (!R || R.type === 'grass') continue; for (const it of R.items) { it.x += R.speed; it.x = ((it.x + 32) % span + span) % span - 32; } }
+  for (let i = Math.floor(tv.cam) - 2; i < tv.cam + 18; i++) { const R = tv.rows[i]; if (!R || R.type === 'grass') continue; const sp = R.span || span, off = R.off || 32; for (const it of R.items) { it.x += R.speed; it.x = ((it.x + off) % sp + sp) % sp - off; } }
   tv.cam += (Math.max(tv.cam + .004 + Math.min(.012, tv.maxRow / 20000), tv.row - 4) - tv.cam) * .05 + .003;  // la caméra avance d'elle-même : pas question de traîner
   const R = tvRow(tv.row), landed = tv.tick - tv.hopAt >= TV.HOP, cx = tv.x + 8;
-  if (R.type === 'road') for (const it of R.items) if (cx + 4 > it.x && cx - 4 < it.x + it.len * 16) return tvDie('Écrasé !');
+  if (R.type === 'road' || R.type === 'rail') for (const it of R.items) if (cx + 4 > it.x && cx - 4 < it.x + it.len * 16) return tvDie(R.type === 'rail' ? 'Le train !' : 'Écrasé !');
+  if (R.type === 'ice' && landed) { tv.x += R.speed; if (tv.x < -6 || tv.x > (TV.COLS - 1) * 16 + 6) return tvDie('Glissade !'); }
+  if (R.type === 'lava' && landed) {
+    const st = R.items.find(it => cx > it.x + 1 && cx < it.x + it.len * 16 - 1); if (!st) return tvDie('Brûlé !');
+    tv.x += R.speed; if (tv.x < -6 || tv.x > (TV.COLS - 1) * 16 + 6) return tvDie('Brûlé !');
+  }
   if (R.type === 'river' && landed) {
     const log = R.items.find(it => cx > it.x + 2 && cx < it.x + it.len * 16 - 2); if (!log) return tvDie('Plouf !');
     tv.x += R.speed; if (tv.x < -6 || tv.x > (TV.COLS - 1) * 16 + 6) return tvDie('Emporté !');
@@ -385,26 +425,39 @@ function tvUpdate() {
   if (tvY(tv.row) > H + 2) return tvDie('Trop lent !');
 }
 function tvDraw() {
+  const gone = tv.rows[Math.floor(tv.cam) - 6]; if (gone) gone.img = null;  // l'herbe gardée des rangées passées est libérée
   for (let i = Math.floor(tv.cam) - 1; i < tv.cam + 17; i++) {
     const R = tvRow(i), y = Math.round(tvY(i)); if (y > H || y < TV.TOP - 16) continue;
-    if (R.type === 'grass') { for (let x = 0; x < W; x++) for (let k = 0; k < 16; k++) { const h = (Math.imul(x * 13 + (i * 16 + k) * 7, 2654435761) >>> 0) / 4294967296; px(g, h < .05 ? '#6ad06a' : h < .07 ? '#ffd84a' : i % 2 ? '#3a9a44' : '#40a24a', x, y + k); } }
+    if (R.type === 'grass') g.drawImage(R.img ??= cnv(W, 16, b => { for (let x = 0; x < W; x++) for (let k = 0; k < 16; k++) { const h = (Math.imul(x * 13 + (i * 16 + k) * 7, 2654435761) >>> 0) / 4294967296; px(b, h < .05 ? '#6ad06a' : h < .07 ? '#ffd84a' : i % 2 ? '#3a9a44' : '#40a24a', x, k); } }), 0, y);
     if (R.type === 'road') { px(g, '#3a3848', 0, y, W, 16); px(g, '#4a4858', 0, y, W, 1); if (tvRow(i + 1).type === 'road') for (let x = 4; x < W; x += 16) px(g, '#c8c0a0', x, y, 8, 1); px(g, '#2a2838', 0, y + 15, W, 1); }
+    if (R.type === 'rail') { px(g, '#4a4040', 0, y, W, 16); for (let x = 0; x < W; x += 2) px(g, (x * 7 + i) % 5 ? '#5a5050' : '#3a3232', x, y + (x * 3) % 16, 1, 1);
+      for (let x = 2; x < W; x += 8) px(g, '#6a4420', x, y + 2, 4, 12); px(g, '#c8c8d8', 0, y + 4, W, 1); px(g, '#8a8a9a', 0, y + 5, W, 1); px(g, '#c8c8d8', 0, y + 10, W, 1); px(g, '#8a8a9a', 0, y + 11, W, 1);
+      const it = R.items[0], near = R.dir > 0 ? it.x + 128 > -300 && it.x < W : it.x < W + 300 && it.x + 128 > 0, on = near && tv.tick % 20 < 10;  // le feu : il clignote quand le train arrive
+      px(g, '#05010b', 1, y + 1, 5, 7); px(g, on ? '#ff3a3a' : '#5a1a1a', 2, y + 2, 3, 3); if (on) px(g, '#ffb0a0', 2, y + 2, 1, 1); px(g, '#8a8a9a', 3, y + 8, 1, 7); }
+    if (R.type === 'ice') { px(g, '#a8d8f0', 0, y, W, 16); for (let x = 0; x < W; x++) { const h = (Math.imul(x * 31 + i * 977, 2654435761) >>> 0) / 4294967296; if (h < .06) px(g, '#e8f8ff', x, y + 2 + Math.floor(h * 180) % 12, 3, 1); else if (h < .08) px(g, '#78b0d0', x, y + 3 + Math.floor(h * 300) % 10, 2, 1); }
+      for (let x = (Math.floor(tv.tick / 3) * R.dir % 32 + 32) % 32; x < W; x += 32) { px(g, '#c8ecff', x, y + 7, 4, 1); px(g, '#c8ecff', x + (R.dir > 0 ? 3 : 0), y + 6, 1, 3); }
+      px(g, '#78b0d0', 0, y + 15, W, 1); }
+    if (R.type === 'lava') { px(g, '#c83a10', 0, y, W, 16); for (let x = 0; x < W; x++) if ((x * 5 + i * 13 + Math.floor(tv.tick / 6) * R.dir * 2) % 19 === 0) px(g, '#ff8a2a', x, y + 3 + (x % 4) * 3, 3, 1);
+      for (let k = 0; k < 3; k++) { const bx = (i * 53 + k * 71) % W, t = (tv.tick + k * 23 + i * 7) % 60; if (t < 12) px(g, t < 6 ? '#ffd84a' : '#ff6a1a', bx, y + 6, 2 + (t >> 2), 2); }
+      if (tvRow(i + 1).type !== 'lava') px(g, '#7a1a08', 0, y, W, 2); }
     if (R.type === 'river') { px(g, '#2a5ac0', 0, y, W, 16); for (let x = 0; x < W; x += 1) if ((x * 7 + i * 11 + Math.floor(tv.tick / 8) * R.dir * 3) % 23 === 0) px(g, '#5a9aff', x, y + 4 + (x % 3) * 3, 3, 1); if (tvRow(i + 1).type !== 'river') px(g, '#1a3a7a', 0, y, W, 2); }
   }
   for (let i = Math.floor(tv.cam) + 17; i >= Math.floor(tv.cam) - 1; i--) {  // de haut en bas : ce qui est plus bas passe devant
     const R = tvRow(i), y = Math.round(tvY(i)); if (y > H || y < TV.TOP - 32) continue;
     if (R.type === 'grass') for (const c of R.trees) g.drawImage(TV_TREE, c * 16, y - 4);
     if (R.type === 'river') for (const it of R.items) g.drawImage(TV_LOGS[it.len], Math.round(it.x), y);
-    if (R.type === 'road') for (const it of R.items) { g.save(); if (R.dir < 0) { g.translate(Math.round(it.x) + it.len * 16, y); g.scale(-1, 1); g.drawImage(it.img, 0, 0); } else g.drawImage(it.img, Math.round(it.x), y); g.restore(); }
+    if (R.type === 'lava') for (const it of R.items) g.drawImage(TV_STONES[it.len], Math.round(it.x), y);
+    if (R.type === 'road' || R.type === 'rail') for (const it of R.items) { g.save(); if (R.dir < 0) { g.translate(Math.round(it.x) + it.len * 16, y); g.scale(-1, 1); g.drawImage(it.img, 0, 0); } else g.drawImage(it.img, Math.round(it.x), y); g.restore(); }
     if (i === tv.row) {
       const k = Math.min(1, (tv.tick - tv.hopAt) / TV.HOP), hopY = k < 1 ? Math.sin(k * Math.PI) * 5 : 0, fy = tvY(tv.from[1]) + (tvY(tv.row) - tvY(tv.from[1])) * k, fx = tv.from[0] + (tv.x - tv.from[0]) * k;
       if (tv.mode === 'over' && tv.why === 'Écrasé !') { px(g, '#ffd84a', Math.round(tv.x) + 1, y + 6, 14, 5); px(g, '#05010b', Math.round(tv.x) + 1, y + 11, 14, 1); px(g, '#ff9a3d', Math.round(tv.x) + 12, y + 7, 3, 2); }
-      else if (tv.mode === 'over' && tv.why === 'Plouf !') { const t = Math.min(8, tv.tick - tv.deadAt); for (let a = 0; a < 6; a++) px(g, '#c8e0ff', Math.round(tv.x) + 8 + Math.cos(a) * t, y + 8 + Math.sin(a) * t * .5, 2, 2); }
-      else { g.save(); if (tv.face < 0) { g.translate(Math.round(fx) + 14, 0); g.scale(-1, 1); g.drawImage(TV_CHICK[k < 1 ? 1 : 0], 0, Math.round(fy - hopY) + 2); } else g.drawImage(TV_CHICK[k < 1 ? 1 : 0], Math.round(fx) + 2, Math.round(fy - hopY) + 2); g.restore(); }
+      else if (tv.mode === 'over' && (tv.why === 'Plouf !' || tv.why === 'Brûlé !')) { const t = Math.min(8, tv.tick - tv.deadAt); for (let a = 0; a < 6; a++) px(g, tv.why === 'Plouf !' ? '#c8e0ff' : '#8a8090', Math.round(tv.x) + 8 + Math.cos(a) * t, y + 8 + Math.sin(a) * t * .5, 2, 2); }
+      else { g.save(); if (tv.face < 0) { g.translate(Math.round(fx) + 14, 0); g.scale(-1, 1); g.drawImage(tvChar().img[k < 1 ? 1 : 0], 0, Math.round(fy - hopY) + 2); } else g.drawImage(tvChar().img[k < 1 ? 1 : 0], Math.round(fx) + 2, Math.round(fy - hopY) + 2); g.restore(); }
     }
   }
   px(g, '#05010b', 0, 0, W, TV.TOP); pxFont(g, String(tv.maxRow), 6, 10, '#ffffff', 8); pxFont(g, 'record ' + (games.best.traversee || 0), W - 6, 10, '#a8b8a0', 6, 'right');
-  if (tv.mode === 'ready') gameText(g, W, [['TRAVERSÉE', '#ffd84a', 14], ['Flèches ou clic pour sauter', '#ffffff'], ['Ne traîne pas !', '#a8d8a0']], 90);
+  if (tv.unlock && tv.mode === 'play') { if (--tv.unlock.t <= 0) tv.unlock = null; else gameText(g, W, [['NOUVEAU PERSONNAGE', '#ffd84a', 8], [tv.unlock.name + ' débloqué !', '#ffffff']], 40); }
+  if (tv.mode === 'ready') gameText(g, W, [['TRAVERSÉE', '#ffd84a', 14], ['Flèches ou clic pour sauter', '#ffffff'], ['Ne traîne pas !', '#a8d8a0'], [tvChar().name, '#b0d0ff']], 90);
   if (tv.mode === 'over' && tv.tick - tv.deadAt > 30) gameText(g, W, [[tv.why.toUpperCase(), '#ff4a5a', 12], [tv.maxRow + ' rangées', '#ffffff'], ['Clic pour rejouer', '#ffd84a']], 90);
 }
 const TV_DIRS = {ArrowUp: [0, 1], ArrowDown: [0, -1], ArrowLeft: [-1, 0], ArrowRight: [1, 0], z: [0, 1], s: [0, -1], q: [-1, 0], d: [1, 0], w: [0, 1], a: [-1, 0]};
@@ -419,12 +472,30 @@ cv.onpointerdown = e => {
   const [x, y] = cpos(e), dx = x - (tv.x + 8), dy = y - (tvY(tv.row) + 8);
   if (Math.abs(dx) > Math.abs(dy) * 1.2) tvHop(Math.sign(dx), 0); else tvHop(0, dy < 0 ? 1 : -1);
 };
-function tvInfo() { showStats([['Record', (games.best.traversee || 0) + ' rangées'], ['Parties', tvs.games]]); }
+function tvInfo() { showStats([['Record', (games.best.traversee || 0) + ' rangées'], ['Parties', tvs.games], ['Personnages', TV_CHARS.filter(c => (games.best.traversee || 0) >= c.need).length + ' / ' + TV_CHARS.length]]); }
+// le choix du personnage : un dessin par case, en ombre avec le record à atteindre tant qu'il n'est pas débloqué
+const pk = $('tvPick'), pg = pk.getContext('2d'); pg.imageSmoothingEnabled = false;
+const tvShadow = img => cnv(img.width, img.height, b => { b.drawImage(img, 0, 0); b.globalCompositeOperation = 'source-in'; px(b, '#3a5a3e', 0, 0, img.width, img.height); });
+function tvPick() {
+  const rec = games.best.traversee || 0; pg.clearRect(0, 0, 128, 32);
+  TV_CHARS.forEach((c, i) => { const x = i * 32, open = rec >= c.need, on = tvChar() === c;
+    px(pg, on ? '#ffd84a' : '#24482a', x + 1, 1, 30, 30); px(pg, '#0c1a0e', x + 2, 2, 28, 28);
+    if (open) pg.drawImage(c.img[0], x + 4, 4, 24, 24);
+    else { pg.drawImage(c.shadow ??= tvShadow(c.img[0]), x + 4, 4, 24, 24); pxFont(pg, String(c.need), x + 16, 22, '#ffd84a', 6, 'center'); } });
+  const c = tvChar(), next = TV_CHARS.find(q => q.need > rec);
+  $('tvPickInfo').textContent = c.name + (next ? ' · ' + next.name + ' à ' + next.need + ' rangées' : ' · tous débloqués !');
+}
+pk.onclick = e => { const r = pk.getBoundingClientRect(), i = Math.floor((e.clientX - r.left) / r.width * 4), c = TV_CHARS[i];
+  if (!c) return; if ((games.best.traversee || 0) < c.need) { toast(c.name + ' : atteins ' + c.need + ' rangées pour le débloquer'); return; }
+  tvs.char = i; saveGames(); tvPick(); beep(700, .05); };
 $('gNew').onclick = () => { tvNew(); $('gNew').blur(); };
 {  // vérification : chaque rivière a des troncs, chaque route a des voitures, et la colonne du milieu reste libre au départ
-  const keep = tv; tv = null; tvNew(); let ok = true; for (let i = 0; i < 300; i++) { const R = tvRow(i); ok &&= R.type === 'grass' ? !R.trees.has(6) || i > 2 : R.items.length > 0; }
-  console.assert(ok && tvRow(0).type === 'grass', 'traversee'); tv = keep;
+    const keep = tv; tv = null; tvNew(); let ok = true; const seen = new Set();
+    for (let i = 0; i < 300; i++) { const R = tvRow(i); seen.add(R.type); ok &&= R.type === 'grass' ? !R.trees.has(6) || i > 2 : R.type === 'ice' || R.items.length > 0; if (i < 15) ok &&= !/rail|ice|lava/.test(R.type); }
+    console.assert(ok && tvRow(0).type === 'grass' && ['rail', 'ice', 'lava'].every(t => seen.has(t)), 'traversee', [...seen]); tv = keep;
 }
-ctx.onOpen(() => { if (!tv) tvNew(); gameLoop(tv, 'traversee', tvUpdate, tvDraw); tvInfo(); });
+$('tvFs').onclick = () => { $('tvFs').blur(); try { document.fullscreenElement ? document.exitFullscreen() : cv.parentElement.requestFullscreen?.().catch(() => {}); } catch {} };
+cv.__tv = {st: () => tv, row: i => tvRow(i), chars: TV_CHARS, char: () => tvChar().name, best: v => { const o = games.best.traversee; games.best.traversee = v; tvPick(); tvInfo(); return o; }};  // pour le test « local »
+ctx.onOpen(() => { tvPick(); if (!tv) tvNew(); gameLoop(tv, 'traversee', tvUpdate, tvDraw); tvInfo(); });
 
 }

@@ -35,3 +35,11 @@ Your record and number of games are stored by NeoDex, backed up and synced betwe
 In NeoDex: **NeoStore → Discover → Traversée → Install**.
 
 Building a plugin: see the [NeoDex SDK](https://github.com/NDesumeur/neodex-sdk).
+
+## Full screen, characters and new terrains
+
+- **Fits the screen**: the game grows with the window, from a small laptop to a big screen. The "FULL SCREEN" button puts it in full screen.
+- **Characters to unlock**: the duck at a record of 25 rows, the rabbit at 50, the robot at 100. Pick one in the "CHARACTER" frame; locked ones are shown as shadows with the record to reach. A message tells you mid-game when you unlock one.
+- **Railway** (from row 15): a very fast train passes now and then; the red light blinks when it comes.
+- **Ice** (from row 30): it makes you slide sideways; don't get carried off the screen.
+- **Lava** (from row 50): jump from stone to stone, like on the river logs.

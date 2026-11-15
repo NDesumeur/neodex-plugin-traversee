@@ -35,3 +35,11 @@ Record et nombre de parties sont enregistrés par NeoDex, sauvegardés et synchr
 Dans NeoDex : **NeoStore → À découvrir → Traversée → Installer**.
 
 Développer un plugin : voir le [SDK NeoDex](https://github.com/NDesumeur/neodex-sdk).
+
+## Plein écran, personnages et nouveaux terrains
+
+- **À la taille de l'écran** : le jeu grandit avec la fenêtre, du petit portable au grand écran. Le bouton « PLEIN ÉCRAN » le met en plein écran.
+- **Personnages à débloquer** : le canard à 25 rangées de record, le lapin à 50, le robot à 100. Choisis-le dans le cadre « PERSONNAGE » ; ceux qui restent à débloquer sont en ombre, avec le record à atteindre. Un message te prévient en pleine partie quand tu en débloques un.
+- **Voie ferrée** (dès la rangée 15) : un train très rapide passe de temps en temps ; le feu rouge clignote quand il arrive.
+- **Glace** (dès la rangée 30) : elle te fait glisser sur le côté ; ne te laisse pas emporter hors de l'écran.
+- **Lave** (dès la rangée 50) : saute de pierre en pierre, comme sur les troncs de la rivière.
