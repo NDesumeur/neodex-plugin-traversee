@@ -1,9 +1,9 @@
 {
   "pluginId": "neodex.traversee",
   "repo": "NDesumeur/neodex-plugin-traversee",
-  "version": "1.1.0",
-  "sha256": "b4b307d62af6f0ba0a277d50ce7fe1b3658f6f120d135b4fc06351862f933649",
-  "approvedAt": "2026-11-16T04:14:40.224Z",
+  "version": "1.1.1",
+  "sha256": "f5a0d7f851ad06049d4699d1ee574f1363d0821cbca85fb8157e084de1d6aa8a",
+  "approvedAt": "2026-11-16T16:38:52.147Z",
   "neobase": ">=4.0.0",
-  "signature": "WWhxQ7KQM0otWoOK7dggl6TMcKyubKiIpWcoSLhnaEm1zbgvPvUapYMBBtcLre9JlrUqvyjiDhJ3Ey2XT3tABg=="
+  "signature": "aYP3bVmR+e8lv6zM5LuzO4E67kwAgtf4q3sbN3vihK7NfyVGfqqNmxugKbULQ/tcGCvIlRhkqZxtLbtZJrNQAA=="
 }
