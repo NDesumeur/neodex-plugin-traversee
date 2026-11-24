@@ -23,7 +23,16 @@ module.exports = async ({ pj, sleep }) => {
   if (r !== 'Lapin,Lapin') throw new Error('personnages (record 60 : lapin oui, robot non) : ' + r);
   await sleep(300); await shot('4-perso');
   if (process.env.NEO_SHOTS) { const d = await pj(`document.getElementById('tvPick').toDataURL()`); require('fs').writeFileSync(require('path').join(process.env.NEO_SHOTS, 'traversee-choix.png'), Buffer.from(d.split(',')[1], 'base64')); }
-  await T(`T.best(${old ?? 0}); return 0;`);
+  // un personnage de la deuxième ligne emmène dans son monde : le pingouin sur la banquise
+  const pick = i => pj(`(() => { const c = document.getElementById('tvPick'), b = c.getBoundingClientRect(), i = ${i}; c.dispatchEvent(new MouseEvent('click', {clientX: b.left + b.width * ((i % 4) + .5) / 4, clientY: b.top + b.height * (Math.floor(i / 4) * .5 + .25), bubbles: true})); return document.getElementById('gc').__tv.char() + ' · ' + document.getElementById('tvPickInfo').textContent; })()`);
+  await T(`T.best(500); return 0;`);
+  const pg = await pick(4);
+  if (!/^Pingouin · Pingouin \(Banquise\)/.test(pg)) throw new Error('pingouin : ' + pg);
+  await pj(`document.getElementById('gNew').click(), 0`); await sleep(300);
+  await T(`const t = T.st(); t.mode = 'pause'; let i = 4; while (T.row(i).type !== 'river') i++; t.cam = i - 6; t.row = i - 2; return 0;`); await sleep(400); await shot('5-banquise');
+  for (const [k, n] of [[3, 'robot'], [5, 'fantome'], [6, 'dino'], [7, 'alien']]) { await pick(k); await sleep(300); await shot('6-' + n); }
+  if (process.env.NEO_SHOTS) { const d = await pj(`document.getElementById('tvPick').toDataURL()`); require('fs').writeFileSync(require('path').join(process.env.NEO_SHOTS, 'traversee-choix-tous.png'), Buffer.from(d.split(',')[1], 'base64')); }
+  await pick(0); await T(`T.best(${old ?? 0}); return 0;`);
   const errs = await pj(`window.__e.join(' | ')`); if (errs) throw new Error('erreur : ' + errs);
-  return 'terrains ' + kinds + ' · lapin débloqué à 60 · plein écran · ' + L.h + ' px dans ' + L.ww + '×' + L.wh;
+  return 'terrains ' + kinds + ' · lapin débloqué à 60 · ' + pg + ' · plein écran · ' + L.h + ' px dans ' + L.ww + '×' + L.wh;
 };

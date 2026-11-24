@@ -4,6 +4,15 @@ Un poussin doit aller le plus loin possible sur un chemin sans fin fait de prair
 
 *English version: [README.en.md](README.en.md)*
 
+## Personnages et mondes (nouveau en 1.2.0)
+
+Huit personnages, débloqués par ton record. Les quatre premiers traversent la campagne ; les autres emmènent dans leur monde, avec son herbe, ses arbres, ses routes, sa rivière et ses voitures :
+- **Robot** (100 rangées) : la ville du futur, lampadaires et voitures néon.
+- **Pingouin** (150) : la banquise, sapins enneigés, plaques de glace et neige qui tombe.
+- **Fantôme** (200) : le cimetière la nuit, tombes, marais et lucioles.
+- **Dino** (250) : la jungle, palmiers et chemins de terre.
+- **Alien** (400) : une planète lointaine, cristaux et rivière acide.
+
 ## Commandes
 
 - **Flèches**, **ZQSD** ou **WASD** : un saut d'une case en avant, en arrière, à gauche ou à droite.

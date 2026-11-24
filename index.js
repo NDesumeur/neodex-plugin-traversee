@@ -5,7 +5,7 @@ const HTML = `<div class="appWrap wide">
   <div class="gMain"><div class="gameBox"><canvas id="gc" width="208" height="240"></canvas></div>
     <div class="gSide">
       <div class="sysCard"><b>RECORDS</b><div class="gStats" id="gStats"></div></div>
-      <div class="sysCard"><b>PERSONNAGE</b><canvas id="tvPick" width="128" height="32" aria-label="Choix du personnage"></canvas><div class="hint" id="tvPickInfo" data-pxskip></div></div>
+      <div class="sysCard"><b>PERSONNAGE</b><canvas id="tvPick" width="128" height="64" aria-label="Choix du personnage"></canvas><div class="hint" id="tvPickInfo" data-pxskip></div></div>
       <div class="row"><button class="btn main" id="gNew">NOUVELLE PARTIE</button><button class="btn" id="tvFs">PLEIN ÉCRAN</button></div>
       
       <div class="hint">Sur la rivière, saute de tronc en tronc : ils t'emportent avec eux.</div><div class="hint">L'écran avance tout seul : celui qui traîne se fait rattraper.</div><div class="hint">Plus loin : des trains (le feu rouge clignote avant leur passage), de la glace qui fait glisser, et de la lave où l'on saute de pierre en pierre.</div>
@@ -20,7 +20,7 @@ const CSS = `.gMain{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
 .gSide .sysCard{display:flex;flex-direction:column}
 .gStats{display:grid;grid-template-columns:1fr auto;gap:4px 14px}
 .gStats b{text-align:right}
-#tvPick{width:100%;max-width:384px;aspect-ratio:128/32;image-rendering:pixelated;cursor:pointer;margin-top:6px}
+#tvPick{width:100%;max-width:384px;aspect-ratio:128/64;image-rendering:pixelated;cursor:pointer;margin-top:6px}
 .gameBox canvas{width:min(100%,max(280px,calc((100vh - 170px) * 208 / 240)));height:auto;aspect-ratio:208/240}`;
 /* ---------- l'habillage pixel art, dessiné à la main : police bitmap (accents compris), cadres, boutons, icônes ----------
    Tout est en pixels pleins, agrandis par 2 sans lissage : aucun dégradé, aucune ombre floue. */
@@ -337,11 +337,14 @@ const TV = {T: 16, COLS: 13, TOP: 14, HOP: 7};
 const TV_PAL = {k: '#05010b', y: '#ffd84a', Y: '#fff4a0', o: '#ff9a3d', O: '#c06a10', w: '#ffffff', r: '#ff4a5a'};
 const TV_CHICK = [spr(['....kkkk....', '...kYYYYk...', '..kYYYYYYk..', '..kYYkYYYk..', '..kYYYYYYkk.', '..kyYYYYYook', '.kyyyyYYYkk.', 'kyyyyyyyyk..', 'kyyyyyyyyk..', '.kyyyyyyk...', '..kkokkok...', '...kok.ok...'], TV_PAL),
   spr(['....kkkk....', '...kYYYYk...', '..kYYYYYYk..', '..kYYkYYYk..', '..kYYYYYYkk.', '.kkyYYYYYook', 'kyykyyYYYkk.', 'kyyyyyyyyk..', '.kyyyyyyyk..', '..kkkkkkk...', '...ko..ok...', '............'], TV_PAL)];
-const TV_CARS = [['#ff4a5a', '#ffb0b8', '#a02030'], ['#3f8aff', '#b0d0ff', '#1a4aa0'], ['#5fdf6a', '#c8ffc8', '#2a8a3a'], ['#b07aff', '#e4d0ff', '#6a3ab0']].map(([m, l, d]) => cnv(32, 16, b => {  // une voiture vue de dessus
+const tvCar = ([m, l, d]) => cnv(32, 16, b => {  // une voiture vue de dessus
   px(b, '#05010b', 1, 2, 30, 12); px(b, '#05010b', 2, 1, 28, 14); px(b, m, 2, 2, 28, 12); px(b, l, 3, 3, 26, 1); px(b, d, 2, 12, 28, 2);
   px(b, '#2a3a5a', 9, 4, 5, 8); px(b, '#2a3a5a', 20, 4, 4, 8); px(b, '#8ab0e0', 10, 5, 1, 3); px(b, '#8ab0e0', 21, 5, 1, 3); px(b, '#fff4a0', 29, 3, 2, 2); px(b, '#fff4a0', 29, 11, 2, 2);
   px(b, '#05010b', 5, 0, 5, 2); px(b, '#05010b', 22, 0, 5, 2); px(b, '#05010b', 5, 14, 5, 2); px(b, '#05010b', 22, 14, 5, 2);
-}));
+});
+const TV_CARS = [['#ff4a5a', '#ffb0b8', '#a02030'], ['#3f8aff', '#b0d0ff', '#1a4aa0'], ['#5fdf6a', '#c8ffc8', '#2a8a3a'], ['#b07aff', '#e4d0ff', '#6a3ab0']].map(tvCar);
+// le saut : le même dessin, pattes repliées
+const tvHopRows = rows => [...rows.slice(0, 10), '..kkkkkkkk..', '............'];
 // les personnages : deux images chacun (posé, en saut), débloqués par ton record
 const TV_CHARS = [
   {name: 'Poussin', need: 0, img: TV_CHICK},
@@ -351,9 +354,15 @@ const TV_CHARS = [
   {name: 'Lapin', need: 50, img: [
     ['......kk.kk.', '.....kwkkwk.', '.....kwkkwk.', '.....kwwwwk.', '....kwwwkwwk', '....kwwwwwpk', '.kk.kwwwwwk.', 'kwwkwwwwwk..', 'kwwwwwwwwwk.', '.kwwwwwwwwk.', '..kkwkkkwk..', '...kk...kk..'],
     ['......kk.kk.', '.....kwkkwk.', '.....kwkkwk.', '.....kwwwwk.', '....kwwwkwwk', '.kk.kwwwwwpk', 'kwwkkwwwwwk.', 'kwwwwwwwwk..', '.kwwwwwwwwk.', '..kwwwwwwwk.', '...kkkkkkk..', '............']].map(r => spr(r, {k: '#05010b', w: '#e8e4f0', p: '#ff8aa0'}))},
-  {name: 'Robot', need: 100, img: [
+  {name: 'Robot', need: 100, world: 'ville', img: [
     ['......k.....', '.....krk....', '..kkkkkkkk..', '..kmmmmmmk..', '..kmmbmbmk..', '..kmmmmmmk..', '...kkkkkk...', '..kMMMMMMk..', '.kkMyMMyMkk.', '..kMMMMMMk..', '...kMk.kMk..', '...kkk.kkk..'],
     ['......k.....', '.....krk....', '..kkkkkkkk..', '..kmmmmmmk..', '..kmmbmbmk..', '..kmmmmmmk..', '...kkkkkk...', '.kkMMMMMMkk.', '..kMyMMyMk..', '..kMMMMMMk..', '...kkkkkk...', '............']].map(r => spr(r, {k: '#05010b', r: '#ff4a5a', m: '#b8c0d8', b: '#5ae0ff', M: '#8a92aa', y: '#ffd84a'}))},
+  // chacun des suivants emmène dans son monde
+  ...[['Pingouin', 150, 'banquise', ['....kkkk....', '...kKKKKk...', '..kKKKKKKk..', '..kKKKwkKk..', '..kKKKKKKkk.', '..kKKwwwwook', '.kKKwwwwwkk.', 'kKKwwwwwwk..', 'kKKwwwwwwk..', '.kKwwwwwk...', '..kkokkok...', '...kok.ok...'], {k: '#05010b', K: '#2a3448', w: '#f4f8ff', o: '#ffa030'}],
+    ['Fantôme', 200, 'nuit', ['....kkkk....', '...kwwwwk...', '..kwwwwwwk..', '..kwwwwkwk..', '..kwwwwkwk..', '..kwwwwwwwk.', '.kWwwwwwwwk.', 'kWwwwwwwwwk.', 'kWWwwwwwwwk.', 'kWWwwwwwwwk.', 'kwkwwkwwkwk.', '.k.kk.kk.k..'], {k: '#05010b', w: '#ece8ff', W: '#b8b0e0'}],
+    ['Dino', 250, 'jungle', ['......kkkk..', '.....kggggk.', '.....kgkgggk', '.....kgggggk', '.k...kgggkk.', 'kgk.kggggk..', 'kggkggGGgk..', '.kgggggGGk..', '..kgdgggGk..', '...kgggdgk..', '...kgk.kgk..', '...kkk.kkk..'], {k: '#05010b', g: '#5fc86a', G: '#d8f0a0', d: '#2a8a3a'}],
+    ['Alien', 400, 'planete', ['..k......k..', '...k....k...', '...kkkkkk...', '..kaaaaaak..', '.kaaawwwaak.', '.kaaawbwaak.', '.kaaawwwaak.', '..kaaaaaak..', '...kkkkkk...', '..kAAAAAAk..', '...kAk.kAk..', '...kkk.kkk..'], {k: '#05010b', a: '#8af05a', A: '#b07aff', w: '#ffffff', b: '#05010b'}]]
+    .map(([name, need, world, rows, pal]) => ({name, need, world, img: [rows, tvHopRows(rows)].map(r => spr(r, pal))})),
 ];
 const tvChar = () => TV_CHARS[tvs.char] && (games.best.traversee || 0) >= TV_CHARS[tvs.char].need ? TV_CHARS[tvs.char] : TV_CHARS[0];
 // le train : une locomotive et deux wagons (128 px), une pierre sur la lave
@@ -365,13 +374,32 @@ const TV_TRAIN = cnv(128, 16, b => {
 const tvStone = n => cnv(n * 16, 16, b => { const w = n * 16; px(b, '#05010b', 1, 2, w - 2, 12); px(b, '#05010b', 2, 1, w - 4, 14); px(b, '#5a5060', 2, 2, w - 4, 12); px(b, '#7a7080', 3, 3, w - 6, 3); px(b, '#3a3242', 2, 11, w - 4, 3); for (let x = 5; x < w - 4; x += 6) px(b, '#4a4250', x, 7 + (x % 4 ? 1 : 0), 2, 2); });
 const TV_STONES = [null, tvStone(1), tvStone(2)];
 const TV_TRUCK = cnv(48, 16, b => { px(b, '#05010b', 1, 1, 46, 14); px(b, '#e8e0d0', 2, 2, 32, 12); px(b, '#c8c0b0', 2, 12, 32, 2); for (let x = 6; x < 34; x += 6) px(b, '#b0a898', x, 3, 1, 9); px(b, '#ffa030', 36, 2, 10, 12); px(b, '#c06a10', 36, 12, 10, 2); px(b, '#2a3a5a', 39, 4, 4, 8); px(b, '#fff4a0', 45, 3, 2, 2); px(b, '#fff4a0', 45, 11, 2, 2); });
-const tvLog = n => cnv(n * 16, 16, b => {  // un tronc : écorce, nœuds, bouts coupés avec leurs cernes
-  const w = n * 16; px(b, '#05010b', 0, 2, w, 12); px(b, '#8a5a2a', 1, 3, w - 2, 10); px(b, '#a8743a', 1, 4, w - 2, 2); px(b, '#5a3a1a', 1, 11, w - 2, 2);
-  for (let x = 6; x < w - 6; x += 7) px(b, '#6a4420', x, 7 + (x % 3), 4, 1); for (let x = 12; x < w - 8; x += 19) { px(b, '#5a3a1a', x, 5, 3, 3); px(b, '#c89a5a', x + 1, 6, 1, 1); }
-  px(b, '#d8b070', 1, 4, 3, 8); px(b, '#a8743a', 2, 6, 1, 4); px(b, '#d8b070', w - 4, 4, 3, 8); px(b, '#a8743a', w - 3, 6, 1, 4);
+const tvLog = (n, [ba, li, da, gr, kn, cu] = ['#8a5a2a', '#a8743a', '#5a3a1a', '#6a4420', '#c89a5a', '#d8b070']) => cnv(n * 16, 16, b => {  // un tronc : écorce, nœuds, bouts coupés avec leurs cernes
+  const w = n * 16; px(b, '#05010b', 0, 2, w, 12); px(b, ba, 1, 3, w - 2, 10); px(b, li, 1, 4, w - 2, 2); px(b, da, 1, 11, w - 2, 2);
+  for (let x = 6; x < w - 6; x += 7) px(b, gr, x, 7 + (x % 3), 4, 1); for (let x = 12; x < w - 8; x += 19) { px(b, da, x, 5, 3, 3); px(b, kn, x + 1, 6, 1, 1); }
+  px(b, cu, 1, 4, 3, 8); px(b, li, 2, 6, 1, 4); px(b, cu, w - 4, 4, 3, 8); px(b, li, w - 3, 6, 1, 4);
 });
 const TV_LOGS = [null, null, tvLog(2), tvLog(3), tvLog(4)];
 const TV_TREE = spr(['.....kkkk.......', '...kkNNNNkk.....', '..kNNnnNNNNk....', '.kNnnNNNNnNNk...', '.kNnNNNnNNNNk...', 'kNNNNNNNNnNNNk..', 'kNnNNNNNNNNNNk..', 'kNNNNnNNNNnNNk..', '.kNNNNNNNNNNk...', '.kkNNNNNNNNkk...', '...kkkddkkk.....', '.....kddk.......', '....kkddkk......', '................', '................', '................'], {k: '#05010b', N: '#2a7a3a', n: '#4aa84a', d: '#6a4420'});
+// les mondes : herbe (deux tons, deux taches, joint des dalles), arbre, route, rivière, troncs, voitures, et ce qui tombe du ciel
+const tvLogs = P => [null, null, tvLog(2, P), tvLog(3, P), tvLog(4, P)];
+const TV_WORLDS = {
+  ferme: {name: 'Campagne', grass: ['#3a9a44', '#40a24a', '#6ad06a', '#ffd84a'], tree: TV_TREE, road: ['#3a3848', '#4a4858', '#c8c0a0', '#2a2838'], river: ['#2a5ac0', '#5a9aff', '#1a3a7a'], logs: TV_LOGS},
+  ville: {name: 'Ville du futur', grass: ['#2a3448', '#2e384c', '#5ae0ff', '#ff4fd8', '#1e2638'], road: ['#14101e', '#2a2040', '#ff4fd8', '#0a0814'], river: ['#3a1a7a', '#b07aff', '#1a0a40'],
+    tree: cnv(16, 16, b => { px(b, '#05010b', 6, 1, 5, 15); px(b, '#5a6280', 7, 4, 3, 11); px(b, '#05010b', 3, 0, 11, 5); px(b, '#5ae0ff', 4, 1, 9, 3); px(b, '#c8f8ff', 5, 1, 4, 1); px(b, '#05010b', 4, 12, 9, 4); px(b, '#3a4260', 5, 13, 7, 2); }),
+    logs: tvLogs(['#3a3a5a', '#5ae0ff', '#1a1a30', '#2a2a48', '#ff4fd8', '#8a8ab0']), cars: [['#ff4fd8', '#ffb0f0', '#a02090'], ['#3ae0ff', '#c0f8ff', '#1a7a9a'], ['#ffd84a', '#fff4b0', '#a08a10'], ['#ffffff', '#ffffff', '#8a92aa']].map(tvCar)},
+  banquise: {name: 'Banquise', grass: ['#e8f0f8', '#dce8f4', '#ffffff', '#a8c8e8'], road: ['#5a6878', '#6a7888', '#ffffff', '#4a5868'], river: ['#1a4a7a', '#8ac8ff', '#0a2a4a'], fx: ['#ffffff', 40, 1],
+    tree: spr(['.......kk.......', '......kwwk......', '.....kwNNwk.....', '.....kNNNNk.....', '....kwwNNwwk....', '....kNNNNNNk....', '...kwwNNNNwwk...', '...kNNNNNNNNk...', '..kwwwNNNNwwwk..', '..kNNNNNNNNNNk..', '..kkkkkddkkkkk..', '......kddk......', '......kddk......', '................', '................', '................'], {k: '#05010b', w: '#ffffff', N: '#2a6a5a', d: '#6a4420'}),
+    logs: tvLogs(['#d8ecfa', '#ffffff', '#98bcd8', '#c0dcf0', '#ffffff', '#eef8ff'])},
+  nuit: {name: 'Cimetière la nuit', grass: ['#1e3230', '#223634', '#3a5a4a', '#5a4a6a'], road: ['#24202e', '#302a3c', '#8a7aa0', '#18141e'], river: ['#1a3a1a', '#4a8a3a', '#0a200a'], fx: ['#d8ff7a', 14, 0], dark: .3,
+    tree: cnv(16, 16, b => { px(b, '#05010b', 3, 3, 10, 12); px(b, '#05010b', 4, 2, 8, 1); px(b, '#8a8aa0', 4, 3, 8, 11); px(b, '#a8a8c0', 5, 3, 6, 1); px(b, '#5a5a70', 5, 6, 6, 1); px(b, '#5a5a70', 7, 5, 2, 4); px(b, '#3a2a4a', 2, 14, 12, 2); }),
+    logs: tvLogs(['#4a3a2a', '#6a5038', '#2a2018', '#3a2c20', '#8a7058', '#9a8060'])},
+  jungle: {name: 'Jungle des dinos', grass: ['#2a6a2a', '#2e7430', '#8ad04a', '#ff6a8a'], road: ['#7a5a3a', '#8a6a48', '#a88a60', '#5a3e24'], river: ['#3a7a6a', '#7ac8b0', '#1a4a3a'], logs: TV_LOGS, fx: ['#8ad04a', 8, 1],
+    tree: spr(['....kk...kk.....', '..kkNNk.kNNkk...', '.kNNnnNkNnnNNk..', 'kNnn.kNNNk.nnNk.', 'kn...kNNNk...nk.', '.....kNddk......', '.......dd.......', '......kddk......', '......kddk......', '......kddk......', '.....kkddkk.....', '................', '................', '................', '................', '................'], {k: '#05010b', N: '#1a7a2a', n: '#4ac04a', d: '#8a5a2a'})},
+  planete: {name: 'Planète lointaine', grass: ['#5a2a5a', '#622e62', '#ff9ae0', '#5ae0ff'], road: ['#2a1a3a', '#3a2a4a', '#5ae0ff', '#1a0a2a'], river: ['#1a8a6a', '#6affc8', '#0a4a3a'], fx: ['#ff9ae0', 12, -1],
+    tree: cnv(16, 16, b => { px(b, '#05010b', 5, 2, 6, 12); px(b, '#05010b', 2, 7, 4, 7); px(b, '#05010b', 10, 5, 4, 9); px(b, '#5ae0ff', 6, 3, 4, 10); px(b, '#c8f8ff', 6, 3, 1, 8); px(b, '#3ab0d8', 3, 8, 2, 5); px(b, '#3ab0d8', 11, 6, 2, 7); px(b, '#3a1a4a', 2, 13, 12, 2); }),
+    logs: tvLogs(['#6a4a8a', '#8a6aaa', '#3a2a5a', '#5a3a7a', '#ff9ae0', '#a88ac8'])}};
+const tvWorld = () => TV_WORLDS[tvChar().world || 'ferme'];
 const tvs = gstore('traversee', {games: 0}); tvs.char ??= 0;
 let tv = null;
 function tvRow(i) {  // chaque rangée se décide à sa première vue, à partir d'un dé seedé par la partie
@@ -426,10 +454,12 @@ function tvUpdate() {
 }
 function tvDraw() {
   const gone = tv.rows[Math.floor(tv.cam) - 6]; if (gone) gone.img = null;  // l'herbe gardée des rangées passées est libérée
+  const WD = tvWorld(), G = WD.grass;
   for (let i = Math.floor(tv.cam) - 1; i < tv.cam + 17; i++) {
     const R = tvRow(i), y = Math.round(tvY(i)); if (y > H || y < TV.TOP - 16) continue;
-    if (R.type === 'grass') g.drawImage(R.img ??= cnv(W, 16, b => { for (let x = 0; x < W; x++) for (let k = 0; k < 16; k++) { const h = (Math.imul(x * 13 + (i * 16 + k) * 7, 2654435761) >>> 0) / 4294967296; px(b, h < .05 ? '#6ad06a' : h < .07 ? '#ffd84a' : i % 2 ? '#3a9a44' : '#40a24a', x, k); } }), 0, y);
-    if (R.type === 'road') { px(g, '#3a3848', 0, y, W, 16); px(g, '#4a4858', 0, y, W, 1); if (tvRow(i + 1).type === 'road') for (let x = 4; x < W; x += 16) px(g, '#c8c0a0', x, y, 8, 1); px(g, '#2a2838', 0, y + 15, W, 1); }
+    if (R.type === 'grass') { if (R.imgW !== WD) { R.img = null; R.imgW = WD; }
+      g.drawImage(R.img ??= cnv(W, 16, b => { for (let x = 0; x < W; x++) for (let k = 0; k < 16; k++) { const h = (Math.imul(x * 13 + (i * 16 + k) * 7, 2654435761) >>> 0) / 4294967296; px(b, G[4] && (x % 16 === 0 || k === 0) ? G[4] : h < .05 ? G[2] : h < .07 ? G[3] : i % 2 ? G[0] : G[1], x, k); } }), 0, y); }
+    if (R.type === 'road') { const D = WD.road; px(g, D[0], 0, y, W, 16); px(g, D[1], 0, y, W, 1); if (tvRow(i + 1).type === 'road') for (let x = 4; x < W; x += 16) px(g, D[2], x, y, 8, 1); px(g, D[3], 0, y + 15, W, 1); }
     if (R.type === 'rail') { px(g, '#4a4040', 0, y, W, 16); for (let x = 0; x < W; x += 2) px(g, (x * 7 + i) % 5 ? '#5a5050' : '#3a3232', x, y + (x * 3) % 16, 1, 1);
       for (let x = 2; x < W; x += 8) px(g, '#6a4420', x, y + 2, 4, 12); px(g, '#c8c8d8', 0, y + 4, W, 1); px(g, '#8a8a9a', 0, y + 5, W, 1); px(g, '#c8c8d8', 0, y + 10, W, 1); px(g, '#8a8a9a', 0, y + 11, W, 1);
       const it = R.items[0], near = R.dir > 0 ? it.x + 128 > -300 && it.x < W : it.x < W + 300 && it.x + 128 > 0, on = near && tv.tick % 20 < 10;  // le feu : il clignote quand le train arrive
@@ -440,14 +470,14 @@ function tvDraw() {
     if (R.type === 'lava') { px(g, '#c83a10', 0, y, W, 16); for (let x = 0; x < W; x++) if ((x * 5 + i * 13 + Math.floor(tv.tick / 6) * R.dir * 2) % 19 === 0) px(g, '#ff8a2a', x, y + 3 + (x % 4) * 3, 3, 1);
       for (let k = 0; k < 3; k++) { const bx = (i * 53 + k * 71) % W, t = (tv.tick + k * 23 + i * 7) % 60; if (t < 12) px(g, t < 6 ? '#ffd84a' : '#ff6a1a', bx, y + 6, 2 + (t >> 2), 2); }
       if (tvRow(i + 1).type !== 'lava') px(g, '#7a1a08', 0, y, W, 2); }
-    if (R.type === 'river') { px(g, '#2a5ac0', 0, y, W, 16); for (let x = 0; x < W; x += 1) if ((x * 7 + i * 11 + Math.floor(tv.tick / 8) * R.dir * 3) % 23 === 0) px(g, '#5a9aff', x, y + 4 + (x % 3) * 3, 3, 1); if (tvRow(i + 1).type !== 'river') px(g, '#1a3a7a', 0, y, W, 2); }
+    if (R.type === 'river') { px(g, WD.river[0], 0, y, W, 16); for (let x = 0; x < W; x += 1) if ((x * 7 + i * 11 + Math.floor(tv.tick / 8) * R.dir * 3) % 23 === 0) px(g, WD.river[1], x, y + 4 + (x % 3) * 3, 3, 1); if (tvRow(i + 1).type !== 'river') px(g, WD.river[2], 0, y, W, 2); }
   }
   for (let i = Math.floor(tv.cam) + 17; i >= Math.floor(tv.cam) - 1; i--) {  // de haut en bas : ce qui est plus bas passe devant
     const R = tvRow(i), y = Math.round(tvY(i)); if (y > H || y < TV.TOP - 32) continue;
-    if (R.type === 'grass') for (const c of R.trees) g.drawImage(TV_TREE, c * 16, y - 4);
-    if (R.type === 'river') for (const it of R.items) g.drawImage(TV_LOGS[it.len], Math.round(it.x), y);
+    if (R.type === 'grass') for (const c of R.trees) g.drawImage(WD.tree, c * 16, y - 4);
+    if (R.type === 'river') for (const it of R.items) g.drawImage(WD.logs[it.len], Math.round(it.x), y);
     if (R.type === 'lava') for (const it of R.items) g.drawImage(TV_STONES[it.len], Math.round(it.x), y);
-    if (R.type === 'road' || R.type === 'rail') for (const it of R.items) { g.save(); if (R.dir < 0) { g.translate(Math.round(it.x) + it.len * 16, y); g.scale(-1, 1); g.drawImage(it.img, 0, 0); } else g.drawImage(it.img, Math.round(it.x), y); g.restore(); }
+    if (R.type === 'road' || R.type === 'rail') for (const it of R.items) { const im = WD.cars?.[TV_CARS.indexOf(it.img)] || it.img; g.save(); if (R.dir < 0) { g.translate(Math.round(it.x) + it.len * 16, y); g.scale(-1, 1); g.drawImage(im, 0, 0); } else g.drawImage(im, Math.round(it.x), y); g.restore(); }
     if (i === tv.row) {
       const k = Math.min(1, (tv.tick - tv.hopAt) / TV.HOP), hopY = k < 1 ? Math.sin(k * Math.PI) * 5 : 0, fy = tvY(tv.from[1]) + (tvY(tv.row) - tvY(tv.from[1])) * k, fx = tv.from[0] + (tv.x - tv.from[0]) * k;
       if (tv.mode === 'over' && tv.why === 'Écrasé !') { px(g, '#ffd84a', Math.round(tv.x) + 1, y + 6, 14, 5); px(g, '#05010b', Math.round(tv.x) + 1, y + 11, 14, 1); px(g, '#ff9a3d', Math.round(tv.x) + 12, y + 7, 3, 2); }
@@ -455,9 +485,13 @@ function tvDraw() {
       else { g.save(); if (tv.face < 0) { g.translate(Math.round(fx) + 14, 0); g.scale(-1, 1); g.drawImage(tvChar().img[k < 1 ? 1 : 0], 0, Math.round(fy - hopY) + 2); } else g.drawImage(tvChar().img[k < 1 ? 1 : 0], Math.round(fx) + 2, Math.round(fy - hopY) + 2); g.restore(); }
     }
   }
+  if (WD.dark) { g.fillStyle = `rgba(10,0,30,${WD.dark})`; g.fillRect(0, TV.TOP, W, H); }
+  if (WD.fx) { const [c, n, v] = WD.fx; for (let k = 0; k < n; k++) {  // neige qui tombe, lucioles qui clignotent, feuilles, spores qui montent
+    const sx = (k * 97 + Math.sin((tv.tick + k * 40) / 50) * 8 + W) % W, sy = ((k * 61 + tv.tick * (.3 + k % 4 * .12) * v) % H + H) % H;
+    if (v || (tv.tick + k * 37) % 90 < 55) px(g, c, Math.round(sx), Math.round(sy), k % 5 ? 1 : 2, k % 5 ? 1 : 2); } }
   px(g, '#05010b', 0, 0, W, TV.TOP); pxFont(g, String(tv.maxRow), 6, 10, '#ffffff', 8); pxFont(g, 'record ' + (games.best.traversee || 0), W - 6, 10, '#a8b8a0', 6, 'right');
   if (tv.unlock && tv.mode === 'play') { if (--tv.unlock.t <= 0) tv.unlock = null; else gameText(g, W, [['NOUVEAU PERSONNAGE', '#ffd84a', 8], [tv.unlock.name + ' débloqué !', '#ffffff']], 40); }
-  if (tv.mode === 'ready') gameText(g, W, [['TRAVERSÉE', '#ffd84a', 14], ['Flèches ou clic pour sauter', '#ffffff'], ['Ne traîne pas !', '#a8d8a0'], [tvChar().name, '#b0d0ff']], 90);
+  if (tv.mode === 'ready') gameText(g, W, [['TRAVERSÉE', '#ffd84a', 14], ['Flèches ou clic pour sauter', '#ffffff'], ['Ne traîne pas !', '#a8d8a0'], [tvChar().name + ' · ' + tvWorld().name, '#b0d0ff']], 90);
   if (tv.mode === 'over' && tv.tick - tv.deadAt > 30) gameText(g, W, [[tv.why.toUpperCase(), '#ff4a5a', 12], [tv.maxRow + ' rangées', '#ffffff'], ['Clic pour rejouer', '#ffd84a']], 90);
 }
 const TV_DIRS = {ArrowUp: [0, 1], ArrowDown: [0, -1], ArrowLeft: [-1, 0], ArrowRight: [1, 0], z: [0, 1], s: [0, -1], q: [-1, 0], d: [1, 0], w: [0, 1], a: [-1, 0]};
@@ -477,22 +511,25 @@ function tvInfo() { showStats([['Record', (games.best.traversee || 0) + ' rangé
 const pk = $('tvPick'), pg = pk.getContext('2d'); pg.imageSmoothingEnabled = false;
 const tvShadow = img => cnv(img.width, img.height, b => { b.drawImage(img, 0, 0); b.globalCompositeOperation = 'source-in'; px(b, '#3a5a3e', 0, 0, img.width, img.height); });
 function tvPick() {
-  const rec = games.best.traversee || 0; pg.clearRect(0, 0, 128, 32);
-  TV_CHARS.forEach((c, i) => { const x = i * 32, open = rec >= c.need, on = tvChar() === c;
-    px(pg, on ? '#ffd84a' : '#24482a', x + 1, 1, 30, 30); px(pg, '#0c1a0e', x + 2, 2, 28, 28);
-    if (open) pg.drawImage(c.img[0], x + 4, 4, 24, 24);
-    else { pg.drawImage(c.shadow ??= tvShadow(c.img[0]), x + 4, 4, 24, 24); pxFont(pg, String(c.need), x + 16, 22, '#ffd84a', 6, 'center'); } });
+  const rec = games.best.traversee || 0; pg.clearRect(0, 0, 128, 64);
+  TV_CHARS.forEach((c, i) => { const x = i % 4 * 32, y = Math.floor(i / 4) * 32, open = rec >= c.need, on = tvChar() === c;
+    px(pg, on ? '#ffd84a' : '#24482a', x + 1, y + 1, 30, 30); px(pg, '#0c1a0e', x + 2, y + 2, 28, 28);
+    if (open) pg.drawImage(c.img[0], x + 4, y + 4, 24, 24);
+    else { pg.drawImage(c.shadow ??= tvShadow(c.img[0]), x + 4, y + 4, 24, 24); pxFont(pg, String(c.need), x + 16, y + 22, '#ffd84a', 6, 'center'); } });
   const c = tvChar(), next = TV_CHARS.find(q => q.need > rec);
-  $('tvPickInfo').textContent = c.name + (next ? ' · ' + next.name + ' à ' + next.need + ' rangées' : ' · tous débloqués !');
+  $('tvPickInfo').textContent = c.name + ' (' + tvWorld().name + ')' + (next ? ' · ' + next.name + ' à ' + next.need + ' rangées' : ' · tous débloqués !');
 }
-pk.onclick = e => { const r = pk.getBoundingClientRect(), i = Math.floor((e.clientX - r.left) / r.width * 4), c = TV_CHARS[i];
+pk.onclick = e => { const r = pk.getBoundingClientRect(), i = Math.floor((e.clientX - r.left) / r.width * 4) + 4 * Math.floor((e.clientY - r.top) / r.height * 2), c = TV_CHARS[i];
   if (!c) return; if ((games.best.traversee || 0) < c.need) { toast(c.name + ' : atteins ' + c.need + ' rangées pour le débloquer'); return; }
   tvs.char = i; saveGames(); tvPick(); beep(700, .05); };
 $('gNew').onclick = () => { tvNew(); $('gNew').blur(); };
 {  // vérification : chaque rivière a des troncs, chaque route a des voitures, et la colonne du milieu reste libre au départ
     const keep = tv; tv = null; tvNew(); let ok = true; const seen = new Set();
     for (let i = 0; i < 300; i++) { const R = tvRow(i); seen.add(R.type); ok &&= R.type === 'grass' ? !R.trees.has(6) || i > 2 : R.type === 'ice' || R.items.length > 0; if (i < 15) ok &&= !/rail|ice|lava/.test(R.type); }
-    console.assert(ok && tvRow(0).type === 'grass' && ['rail', 'ice', 'lava'].every(t => seen.has(t)), 'traversee', [...seen]); tv = keep;
+    console.assert(ok && tvRow(0).type === 'grass' && ['rail', 'ice', 'lava'].every(t => seen.has(t)), 'traversee', [...seen]);
+    const kc = tvs.char, kb = games.best.traversee; games.best.traversee = 1e6;
+    for (let i = 0; i < TV_CHARS.length; i++) { tvs.char = i; const w = tvWorld(); if (!w || !w.tree || w.logs.length !== 5 || w.grass.length < 4 || w.road.length !== 4 || w.river.length !== 3 || !TV_CHARS[i].img[1]) throw new Error('traversee : monde de ' + TV_CHARS[i].name); tvDraw(); }
+    tvs.char = kc; if (kb === undefined) delete games.best.traversee; else games.best.traversee = kb; tv = keep;
 }
 $('tvFs').onclick = () => { $('tvFs').blur(); try { document.fullscreenElement ? document.exitFullscreen() : cv.parentElement.requestFullscreen?.().catch(() => {}); } catch {} };
 cv.__tv = {st: () => tv, row: i => tvRow(i), chars: TV_CHARS, char: () => tvChar().name, best: v => { const o = games.best.traversee; games.best.traversee = v; tvPick(); tvInfo(); return o; }};  // pour le test « local »

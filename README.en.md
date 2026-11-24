@@ -4,6 +4,15 @@ A chick has to get as far as possible along an endless path of meadows, roads an
 
 *Version française : [README.md](README.md)*
 
+## Characters and worlds (new in 1.2.0)
+
+Eight characters, unlocked by your record. The first four cross the countryside; the others take you to their own world, with its grass, trees, roads, river and cars:
+- **Robot** (100 rows): the future city, street lamps and neon cars.
+- **Penguin** (150): the ice floe, snowy firs, ice plates and falling snow.
+- **Ghost** (200): the graveyard at night, tombstones, swamp and fireflies.
+- **Dino** (250): the jungle, palm trees and dirt paths.
+- **Alien** (400): a distant planet, crystals and an acid river.
+
 ## Controls
 
 - **Arrow keys**, **WASD** or **ZQSD**: hop one cell forward, back, left or right.
