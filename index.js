@@ -301,6 +301,9 @@ export default async function (ctx) {
   const saveGames = () => { clearTimeout(gamesTimer); gamesTimer = setTimeout(() => { gamesTimer = null; folder.write('games', games).catch(() => {}); }, 500); };
   const best = (k, v) => { const b = games.best[k]; if (b == null || v > b) { games.best[k] = v; saveGames(); return true; } return false; };
   const gstore = (k, init) => (games[k] ??= init);
+  // les trophées de NeoDex (3.4.8 et plus) : succès et records déclarés dans plugin.json ; sur un NeoDex plus ancien, rien ne se passe
+  const trophy = id => { ctx.games?.unlock(id).catch(() => {}); };
+  const trophyRecord = (id, v) => { if (v != null && Number.isFinite(+v)) ctx.games?.record(id, +v).catch(() => {}); };
 function gameLoop(st, appKey, update, draw) {
   cancelAnimationFrame(st.raf);
   const STEP = 1000 / 60; let acc = 0, last = performance.now();
@@ -506,7 +509,8 @@ cv.onpointerdown = e => {
   const [x, y] = cpos(e), dx = x - (tv.x + 8), dy = y - (tvY(tv.row) + 8);
   if (Math.abs(dx) > Math.abs(dy) * 1.2) tvHop(Math.sign(dx), 0); else tvHop(0, dy < 0 ? 1 : -1);
 };
-function tvInfo() { showStats([['Record', (games.best.traversee || 0) + ' rangées'], ['Parties', tvs.games], ['Personnages', TV_CHARS.filter(c => (games.best.traversee || 0) >= c.need).length + ' / ' + TV_CHARS.length]]); }
+function tvInfo() {
+  setTimeout(tvTrophies); showStats([['Record', (games.best.traversee || 0) + ' rangées'], ['Parties', tvs.games], ['Personnages', TV_CHARS.filter(c => (games.best.traversee || 0) >= c.need).length + ' / ' + TV_CHARS.length]]); }
 // le choix du personnage : un dessin par case, en ombre avec le record à atteindre tant qu'il n'est pas débloqué
 const pk = $('tvPick'), pg = pk.getContext('2d'); pg.imageSmoothingEnabled = false;
 const tvShadow = img => cnv(img.width, img.height, b => { b.drawImage(img, 0, 0); b.globalCompositeOperation = 'source-in'; px(b, '#3a5a3e', 0, 0, img.width, img.height); });
@@ -533,6 +537,12 @@ $('gNew').onclick = () => { tvNew(); $('gNew').blur(); };
 }
 $('tvFs').onclick = () => { $('tvFs').blur(); try { document.fullscreenElement ? document.exitFullscreen() : cv.parentElement.requestFullscreen?.().catch(() => {}); } catch {} };
 cv.__tv = {st: () => tv, row: i => tvRow(i), chars: TV_CHARS, char: () => tvChar().name, best: v => { const o = games.best.traversee; games.best.traversee = v; tvPick(); tvInfo(); return o; }};  // pour le test « local »
+// les trophées, tirés des statistiques et des records gardés (aussi à l'ouverture : ce qui a été fait avant compte)
+function tvTrophies() {
+  const b = games.best.traversee || 0, sig = [b, tvs.games].join(); if (sig === tvTrophies.sig) return; tvTrophies.sig = sig;
+  trophyRecord('rangees', b || null);
+  if (b >= 10) trophy('r10'); if (b >= 25) trophy('r25'); if (b >= 50) trophy('r50'); if (b >= 100) trophy('r100'); if (b >= 200) trophy('r200'); if (tvs.games >= 100) trophy('cent');
+}
 ctx.onOpen(() => { tvPick(); if (!tv) tvNew(); gameLoop(tv, 'traversee', tvUpdate, tvDraw); tvInfo(); });
 
 }

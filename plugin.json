@@ -1,7 +1,7 @@
 {
   "id": "neodex.traversee",
   "name": "Traversée",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "author": "NDesumeur",
   "description": "Un poussin avance le plus loin possible sur un chemin sans fin : prairies avec des arbres à contourner, routes pleines de voitures et de camions, rivières à franchir de tronc en tronc. L'écran avance tout seul et la difficulté monte jusqu'à la rangée 160. Au clavier ou à la souris. Le jeu s'adapte à la taille de l'écran, et un bouton le met en plein écran. Trois personnages à débloquer avec ton record (canard, lapin, robot) et de nouveaux terrains plus loin : voie ferrée, glace et lave. Huit personnages, et cinq d'entre eux emmènent dans leur monde (ville du futur, banquise, cimetière, jungle, planète).",
   "icon": "icon.png",
@@ -22,5 +22,47 @@
   "sdk": "2.1.0",
   "permissions": [
     "storage"
+  ],
+  "succes": [
+    {
+      "id": "r10",
+      "nom": "Premiers pas",
+      "texte": "Avancer de 10 rangées"
+    },
+    {
+      "id": "r25",
+      "nom": "Le canard",
+      "texte": "Avancer de 25 rangées"
+    },
+    {
+      "id": "r50",
+      "nom": "Le lapin",
+      "texte": "Avancer de 50 rangées"
+    },
+    {
+      "id": "r100",
+      "nom": "Le robot",
+      "texte": "Avancer de 100 rangées"
+    },
+    {
+      "id": "r200",
+      "nom": "Bien plus loin",
+      "texte": "Avancer de 200 rangées",
+      "cache": true
+    },
+    {
+      "id": "cent",
+      "nom": "Toujours pas traversé",
+      "texte": "Jouer 100 parties"
+    }
+  ],
+  "records": [
+    {
+      "id": "rangees",
+      "nom": "Plus loin",
+      "sens": "haut",
+      "format": "nombre",
+      "unite": "rangées"
+    }
   ]
 }
